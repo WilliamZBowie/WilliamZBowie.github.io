@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="initial-scale=1.0, user-scalable=no">
+		<meta name="apple-mobile-web-app-capable" content="yes">
+		<title>MultiNMF Walkthrough</title>
+		<!-- CSS -->
+		<link rel="stylesheet" href="css/jquery-ui.min.css">
+		<link rel="stylesheet" href="css/bootstrap.4.1.0.min.css">
+		<link rel="stylesheet" href="css/carousel.css">
+		<link rel="stylesheet" href="css/prism.css">
+		<link rel="stylesheet" href="css/giotto.css">
+		<!-- JS -->
+		<script src="js/jquery.min.js"></script>
+		<script src="js/jquery-ui.min.js"></script>
+		<script src="js/bootstrap.4.1.0.min.js"></script>
+		<script src="js/carousel.js"></script>
+		<script src="js/prism.js"></script>
+		<script src="js/giotto.js"></script>
+	</head>
+	<body data-spy="scroll" data-target="#nex2" data-offset="80">
+		<main role="main" class="col-md-9 ml-sm-auto col-lg-10 pt-3 px-4">
+			<h3>MultiNMF Walkthrough</h3>
+			
+			<p>This tutorial explains how to run MultiNMF from the command line. All the code is contained within the <code>MultiNMF</code> folder and the script <code>run_MultiNMF.py</code> is used to execute the program.</p>
+			
+			<h4>Step 1: Preparing input files</h4>
+			<p>For each run of MultiNMF, you must have the following files (all stored in tab‐delimited txt format, unless otherwise specified):</p>
+			<ul>
+				<li><code>expression.txt</code>: An <em>N</em>-by-<em>G</em> nonnegative-valued matrix of normalized single-cell expression profiles. The expression matrix should be appropriately preprocessed and normalized.</li>
+				<li><code>barcodes.txt</code>: A one-column text file containing a list of cell/spot identifiers. No header is used, and the list order must match the row order of the <code>expression.txt</code> matrix.</li>
+				<li><code>morphology.tiff</code>: An image file of the capture area for the sample being analyzed. Higher resolution leads to better results.</li>
+				<li><code>barcodes.txt</code>: A two-column text file representing a list of cell/spot coordinates (x and y integer values with no headers) corresponding to the row order of the <code>expression.txt</code> matrix. Note that the coordinates must properly align to the pixels of the morphology image with a 1:1 scale.</li>
+			</ul>
+			
+			<h4>Step 2: Running MultiNMF</h4>
+			<p>MultiNMF requires several arguments to specify the input files and hyperparameters. Below are the details:</p>
+			
+			<h5>Input related parameters</h5>
+			<table class="table table-bordered">
+				<thead>
+					<tr>
+						<th>params</th>
+						<th>type</th>
+						<th>description</th>
+						<th>example</th>
+					</tr>
+				</thead>
+				<tbody>
+					<tr>
+						<td>--view_files</td>
+						<td>str</td>
+						<td>Path to expression matrix or additional modalities of data</td>
+						<td>"./expression.txt"</td>
+					</tr>
+					<tr>
+						<td>--view_types</td>
+						<td>str</td>
+						<td>Specifies view types of inputted files</td>
+						<td>"expression" "morph"</td>
+					</tr>
+					<tr>
+						<td>--cell_coordinates</td>
+						<td>str</td>
+						<td>Path to cell coordinate file</td>
+						<td>"coords.txt"</td>
+					</tr>
+					<tr>
+						<td>--cell_names</td>
+						<td>str</td>
+						<td>Path to barcode file</td>
+						<td>"barcodes.txt"</td>
+					</tr>
+					<tr>
+						<td>--image_file</td>
+						<td>str</td>
+						<td>Path to image file</td>
+						<td>"morph.tiff"</td>
+					</tr>
+					<tr>
+						<td>--output_dir</td>
+						<td>str</td>
+						<td>Path to output directory</td>
+						<td>"~/path/output/"</td>
+					</tr>
+				</tbody>
+			</table>
+			
+			<h5>Hyperparameters</h5>
+			<table class="table table-bordered">
+				<thead>
+					<tr>
+						<th>params</th>
+						<th>type</th>
+						<th>description</th>
+						<th>example</th>
+					</tr>
+				</thead>
+				<tbody>
+					<tr>
+						<td>-K</td>
+						<td>int</td>
+						<td>Number of labels (components) to factorize views into</td>
+						<td>15</td>
+					</tr>
+					<tr>
+						<td>-k</td>
+						<td>int</td>
+						<td>Number of clusters to cluster components into</td>
+						<td>15</td>
+					</tr>
+					<tr>
+						<td>-k_init</td>
+						<td>int</td>
+						<td>Number of initializations for Kmeans</td>
+						<td>10000</td>
+					</tr>
+					<tr>
+						<td>-view_weights</td>
+						<td>int</td>
+						<td>Weights to tune influence of individual views to overall consensus of clustering structure (recommended 0.01 per view)</td>
+						<td>0.01 0.01</td>
+					</tr>
+					<tr>
+						<td>-size</td>
+						<td>int</td>
+						<td>Spot size for visualization plots</td>
+						<td>20</td>
+					</tr>
+					<tr>
+						<td>-color</td>
+						<td>str</td>
+						<td>String to specify seaborn color palette. See <a href="https://seaborn.pydata.org/tutorial/color_palettes.html" target="_blank">color palettes</a></td>
+						<td>"husl"</td>
+					</tr>
+					<tr>
+						<td>-HMRF</td>
+						<td>bool</td>
+						<td>Boolean specifying whether to use optional HMRF smoothing</td>
+						<td>True</td>
+					</tr>
+					<tr>
+						<td>-normalize</td>
+						<td>bool</td>
+						<td>Boolean specifying whether to normalize MultiNMF by the 95th percentile of component values</td>
+						<td>True</td>
+					</tr>
+					<tr>
+						<td>-rank_weight</td>
+						<td>int</td>
+						<td>Weight of ranked-based clustering (recommended value 0.995 or higher)</td>
+						<td>0.995</td>
+					</tr>
+					<tr>
+						<td>-beta_range</td>
+						<td>float</td>
+						<td>Specify range (start, end, step) for the number of rounds and increment values to be used for HMRF</td>
+						<td>[0,10,0.5]</td>
+					</tr>
+					<tr>
+						<td>-HMRF_tolerance</td>
+						<td>float</td>
+						<td>Tolerance threshold for HMRF</td>
+						<td>1e-20</td>
+					</tr>
+					<tr>
+						<td>-HMRF_init</td>
+						<td>int</td>
+						<td>Number of initializations for HMRF</td>
+						<td>10000</td>
+					</tr>
+				</tbody>
+			</table>
+			
+			<h5>Command Line Implementation</h5>
+			<p>The following is an example command line prompt:</p>
+			<pre><code class="language-bash"># Example Command Line prompt
+python3 run_MultiNMF.py --view_files expression.txt --view_types expr --cell_coordinates coordinates.txt --cell_names barcodes.txt --image_file morph.tif --scale_factor 71 --output_dir ./Results --view_weights 0.01 0.01 --K 20 --k 10 --k_init 1000 --normalize True
+			</code></pre>
+			
+			<h5>Outputs</h5>
+			<p>Below is an example of the messages printed by MultiNMF during a successful run. These messages provide status updates for several tasks such as image feature extraction, inner loops of NMF, clustering, and various processing steps:</p>
+			<pre><code class="language-bash">Creating Image Crops from Morphology Image
+WARNING:tensorflow:From /home/zach/MultiNMF/Python/extract_image_features.py:74: The name tf.placeholder is deprecated...
+2023-09-14 11:28:55.420107: I tensorflow/core/platform/cpu_feature_guard.cc:142] Your CPU supports instructions...
+...
+Finished Clustering
+			</code></pre>
+			
+			<h5>Output Directory Structure</h5>
+			<p>The output directory (denoted by <strong>OUTDIR</strong>) is organized as follows:</p>
+			<pre>
+OUTDIR
+├── MultiNMF_outputs.npy
+├── Morphology.npy.png
+├── Rank_Matrix.npy
+├── cluster_labels.txt
+├── image_crops_sample_coordinates.png
+├── MultiNMF_Clusters.png
+├── image_crops
+│   ├── *barcode.png
+│   └── features
+│       ├── *barcode.npy
+└── Visualized_Components
+    └── Round {x}
+        └── MultiNMF_Components-Round{x}.png
+			</pre>
+			
+		</main>
+	</body>
+</html>
