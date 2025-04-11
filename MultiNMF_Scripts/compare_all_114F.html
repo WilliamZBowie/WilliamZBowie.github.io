@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="initial-scale=1.0, user-scalable=no">
+		<meta name="apple-mobile-web-app-capable" content="yes">
+		<title>Compare_all_114F</title>
+		<!-- CSS Stylesheets -->
+		<link rel="stylesheet" href="css/jquery-ui.min.css">
+		<link rel="stylesheet" href="css/bootstrap.4.1.0.min.css">
+		<link rel="stylesheet" href="css/carousel.css">
+		<link rel="stylesheet" href="css/prism.css">
+		<link rel="stylesheet" href="css/giotto.css">
+		<!-- JavaScript -->
+		<script src="js/jquery.min.js"></script>
+		<script src="js/jquery-ui.min.js"></script>
+		<script src="js/bootstrap.4.1.0.min.js"></script>
+		<script src="js/carousel.js"></script>
+		<script src="js/prism.js"></script>
+		<script src="js/giotto.js"></script>
+	</head>
+	<body data-spy="scroll" data-target="#nex2" data-offset="80">
+		<main role="main" class="col-md-9 ml-sm-auto col-lg-10 pt-3 px-4">
+			<h3>Compare_all_114F</h3>
+			
+			<!-- Python Code Block -->
+			<pre><code class="language-python">
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Tue May  9 15:35:33 2023
+
+@author: zach
+"""
+import os
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import h5py
+import json
+from pathlib import Path
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import adjusted_rand_score
+from munkres import Munkres
+import seaborn as sns
+from sklearn.metrics import confusion_matrix
+
+# Code for relabeling Kmeans using Hungarian cost analysis
+def make_cost_matrix(c1, c2):
+    uc1 = np.unique(c1)
+    uc2 = np.unique(c2)
+    l1 = uc1.size
+    l2 = uc2.size
+    print(l1, l2)
+    print(uc1)
+    print(uc2)
+    assert(l1 == l2 and np.all(uc1 == uc2))
+    m = np.ones([l1, l2])
+    for i in range(l1):
+        it_i = np.nonzero(c1 == uc1[i])[0]
+        for j in range(l2):
+            it_j = np.nonzero(c2 == uc2[j])[0]
+            m_ij = np.intersect1d(it_j, it_i)
+            m[i, j] = -m_ij.size
+    return m
+
+def translate_clustering(clt, mapper):
+    return np.array([mapper[i] for i in clt])
+
+def relabel(lab1, lab2):
+    classes = lab1
+    labels = lab2
+    cost_matrix = make_cost_matrix(labels, classes)
+    m = Munkres()
+    u = np.unique(classes)
+    indexes = m.compute(cost_matrix)
+    for ix in range(len(indexes)):
+        indexes[ix] = (u[indexes[ix][0]], u[indexes[ix][1]])
+    mapper = {old: new for (old, new) in indexes}
+    # new_labels = translate_clustering(labels, mapper)
+    return mapper
+
+# Functions to read labels and coordinate files
+def read_loc(n):
+    f = open(n)
+    f.readline()
+    loc = {}
+    for l in f:
+        l = l.rstrip("\n")
+        ll = l.split("\t")
+        cell_id = ll[-1]
+        this_x = float(ll[1])
+        this_y = float(ll[2])
+        loc[cell_id] = (this_x, this_y)
+    f.close()
+    return loc
+
+def read_labels(n):
+    f = open(n)
+    f.readline()
+    labels = {}
+    for l in f:
+        l = l.rstrip("\n")
+        ll = l.split("\t")
+        cell_id = ll[0]
+        pred = (ll[1])
+        refind_pred = (ll[2])
+        labels[cell_id] = (pred, refind_pred)
+    f.close()
+    return labels
+
+# Samples
+samples = ["1142243F", "1160920F", "CID4290"]
+sample = samples[0]
+
+# Read in cell names and locations
+loc = read_loc("/home/zach/Documents/NMF/Results_Mat/" + sample + "/{}_spatial_locs.txt".format(sample))
+
+# Read in labels
+if sample == "CID4290":
+    NMF_label = pd.DataFrame(np.load("/home/zach/Documents/NMF/SpaGCN_vs_MultiNMF_10runs_newscale/{}/kmeans_labels_{}_ninit_10000_k_10.npy".format(sample, sample)), index=loc.keys())
+else:   
+    NMF_label = pd.DataFrame(np.load("/home/zach/Documents/NMF/SpaGCN_vs_MultiNMF_10runs_newscale/{}/kmeans_labels_{}_ninit_10000_k_20.npy".format(sample, sample)), index=loc.keys())
+NMF_label = NMF_label.squeeze()
+
+# Read in SpaGCN Labels
+SpaGCN_label = pd.read_table("/home/zach/Documents/NMF/Test_SpaGCN_Results/SpaCGN_OriginalRes_Result/{}/labels.txt".format(sample), header=None, na_filter=False, index_col=0)
+SpaGCN_label.reindex(loc.keys())
+SpaGCN_label = SpaGCN_label[1].iloc[1:].astype("int")  # Grab refined 
+
+# Read in SpiceMix Labels
+SpiceMix_label = pd.read_table("/home/zach/Documents/NMF/SpiceMix_vs_MultiNMF/Results/{}/Spicemix_{}.txt".format(sample, sample), header=None, na_filter=False, index_col=0)
+SpiceMix_label.reindex(loc.keys())
+SpiceMix_label = SpiceMix_label[1]
+
+# Read in Stagate Labels
+Stagate_label = pd.read_csv("/home/zach/Documents/NMF/STAGATE_vs_MultiNMF/Codes/{}_results.csv".format(sample), na_filter=False, index_col=0)
+Stagate_label.reindex(loc.keys())
+Stagate_label = Stagate_label["louvain"]
+
+# Read in MOFA Labels
+Mofa_label = pd.read_table("/home/zach/Documents/NMF/MOFA/1142243F_labels.txt", header=None, na_filter=False, index_col=0)
+Mofa_label.reindex(loc.keys())
+Mofa_label = Mofa_label[1]
+
+# Select only cells which are common to all methods
+remove = list(set(SpaGCN_label.index).difference(NMF_label.index))
+for r in remove:
+    SpaGCN_label = SpaGCN_label.drop([r])
+remove = list(set(SpiceMix_label.index).difference(NMF_label.index))
+for r in remove:
+    SpiceMix_label = SpiceMix_label.drop([r])
+remove = list(set(Stagate_label.index).difference(NMF_label.index))
+for r in remove:
+    Stagate_label = Stagate_label.drop([r])
+remove = list(set(NMF_label.index).difference(SpaGCN_label.index))
+for r in remove:
+    NMF_label = NMF_label.drop([r])
+remove = list(set(SpiceMix_label.index).difference(SpaGCN_label.index))
+for r in remove:
+    SpiceMix_label = SpiceMix_label.drop([r])
+remove = list(set(Stagate_label.index).difference(SpaGCN_label.index))
+for r in remove:
+    Stagate_label = Stagate_label.drop([r])
+remove = list(set(SpaGCN_label.index).difference(SpiceMix_label.index))
+for r in remove:
+    SpaGCN_label = SpaGCN_label.drop([r])
+remove = list(set(NMF_label.index).difference(SpiceMix_label.index))
+for r in remove:
+    NMF_label = NMF_label.drop([r])
+remove = list(set(Stagate_label.index).difference(SpiceMix_label.index))
+for r in remove:
+    Stagate_label = Stagate_label.drop([r])
+remove = list(set(SpaGCN_label.index).difference(Stagate_label.index))
+for r in remove:
+    SpaGCN_label = SpaGCN_label.drop([r])
+remove = list(set(SpiceMix_label.index).difference(Stagate_label.index))
+for r in remove:
+    SpiceMix_label = SpiceMix_label.drop([r])
+remove = list(set(NMF_label.index).difference(Stagate_label.index))
+for r in remove:
+    NMF_label = NMF_label.drop([r])
+    
+# Reassign Cluster Labels with NMF as reference
+remove = list(set(NMF_label).difference(SpaGCN_label))
+NMF_copy = NMF_label
+SpaGCN_copy = SpaGCN_label
+for r in remove:
+    indexes = np.where(NMF_copy == r)[0]
+    names_nmf = NMF_copy.iloc[indexes].index
+    names_Spa = SpaGCN_copy.iloc[indexes].index
+    NMF_copy = NMF_copy.drop(names_nmf)
+    SpaGCN_copy = SpaGCN_copy.drop(names_Spa)
+NMF_copy = NMF_copy.to_numpy().flatten()
+SpaGCN_copy = SpaGCN_copy.to_numpy()
+key = relabel(NMF_copy, SpaGCN_copy)
+SpaGCN_label = pd.DataFrame(translate_clustering(SpaGCN_label, key), index=SpaGCN_label.index)
+SpaGCN_label = SpaGCN_label[0]
+# SpiceMix
+NMF_copy = np.array(NMF_label)
+Spicemix_copy = np.array(SpiceMix_label)
+key = relabel(NMF_copy, Spicemix_copy)
+SpiceMix_label = pd.DataFrame(translate_clustering(SpiceMix_label, key), index=SpiceMix_label.index)
+SpiceMix_label = SpiceMix_label[0]
+# Stagate
+NMF_copy = np.array(NMF_label)
+Stagate_copy = np.array(Stagate_label)
+key = relabel(NMF_copy, Stagate_copy)
+Stagate_label = pd.DataFrame(translate_clustering(Stagate_label, key), index=Stagate_label.index)
+Stagate_label = Stagate_label[0]
+Stagate_label.reindex(loc.keys())
+# MOFA
+NMF_copy = np.array(NMF_label)
+Mofa_copy  = np.array(Mofa_label)
+key = relabel(NMF_copy, Mofa_copy)
+Mofa_label = pd.DataFrame(translate_clustering(Mofa_label, key), index=Mofa_label.index)
+Mofa_label = Mofa_label[0]
+
+# Manual Reassignment based on sample done here:
+if sample == samples[0]:
+    key = {0:2, 1:6, 2:15, 3:19, 4:4, 5:8,
+           6:13, 7:14, 8:11, 9:17, 10:12,
+           11:7, 12:10, 13:1, 14:3, 15:9,
+           16:16, 17:0, 18:18, 19:5}
+    Stagate_label = pd.DataFrame(translate_clustering(Stagate_label, key), index=Stagate_label.index)
+    Stagate_label = Stagate_label[0]
+    Stagate_label = Stagate_label.reindex(loc.keys())
+if sample == samples[1]:
+    key = {0:0, 1:10, 2:7, 3:6, 4:14, 5:1,
+           6:2, 7:4, 8:8, 9:9, 10:3,
+           11:11, 12:12, 13:13, 14:5, 15:16,
+           16:17, 17:15, 18:18, 19:19}
+    Stagate_label = pd.DataFrame(translate_clustering(Stagate_label, key), index=Stagate_label.index)
+    Stagate_label = Stagate_label[0]
+    Stagate_label = Stagate_label.reindex(loc.keys())
+
+# Save Labels
+NMF_label.to_csv("./TNBC_Dataset/{}/NMF_labels_{}".format(sample, sample), sep="\t", index_label=False, header=False)
+SpaGCN_label.to_csv("./TNBC_Dataset/{}/SpaGCN_labels_{}".format(sample, sample), sep="\t", index_label=False, header=False)
+Stagate_label.to_csv("./TNBC_Dataset/{}/Stagate_labels_{}".format(sample, sample), sep="\t", index_label=False, header=False)
+SpiceMix_label.to_csv("./TNBC_Dataset/{}/Spicemix_labels_{}".format(sample, sample), sep="\t", index_label=False, header=False)
+
+# Plot Spatial Domains and create various figures (Multi_NMF, SpaGCN, SpiceMix, Stagate, MOFA)
+# [Plotting code omitted for brevity]
+			
+			</code></pre>
+			
+			<!-- Running Command Section -->
+			<h3>Running Command</h3>
+			<pre><code class="language-python">python3 compare_all_114F.py</code></pre>
+			
+			<!-- Results Section -->
+			<h3>Results</h3>
+			<p>
+				<img src="pics/CombinedFig_1142243F.png" style="width:600px;" class="img-fluid" alt="Combined Figure">
+				<img src="pics/Heatmap_1142243F.png" style="width:600px;" class="img-fluid" alt="Heatmap">
+				<img src="pics/Mofa_1142243F.png" style="width:600px;" class="img-fluid" alt="MOFA">
+				<img src="pics/NMF_1142243F.png" style="width:600px;" class="img-fluid" alt="NMF">
+				<img src="pics/NMFvsMofa_1142243F.png" style="width:600px;" class="img-fluid" alt="NMF vs MOFA">
+				<img src="pics/NMFvsSpaGCN_1142243F.png" style="width:600px;" class="img-fluid" alt="NMF vs SpaGCN">
+				<img src="pics/NMFvsSpiceMix_1142243F.png" style="width:600px;" class="img-fluid" alt="NMF vs SpiceMix">
+				<img src="pics/NMFvsStagate_1142243F.png" style="width:600px;" class="img-fluid" alt="NMF vs Stagate">
+				<img src="pics/SpaGCN_1142243F.png" style="width:600px;" class="img-fluid" alt="SpaGCN">
+				<img src="pics/Spicemix_1142243F.png" style="width:600px;" class="img-fluid" alt="SpiceMix">
+				<img src="pics/Stagate_1142243F.png" style="width:600px;" class="img-fluid" alt="Stagate">
+			</p>
+		</main>
+	</body>
+</html>
