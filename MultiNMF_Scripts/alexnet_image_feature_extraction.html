@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="initial-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+		<title>AlexNet image feature extraction</title>
+		<!-- CSS Stylesheets -->
+		<link rel="stylesheet" href="css/jquery-ui.min.css">
+		<link rel="stylesheet" href="css/bootstrap.4.1.0.min.css">
+		<link rel="stylesheet" href="css/carousel.css">
+		<link rel="stylesheet" href="css/prism.css">
+		<link rel="stylesheet" href="css/giotto.css">
+		<!-- JavaScript -->
+		<script src="js/jquery.min.js"></script>
+		<script src="js/jquery-ui.min.js"></script>
+		<script src="js/bootstrap.4.1.0.min.js"></script>
+		<script src="js/carousel.js"></script>
+		<script src="js/prism.js"></script>
+		<script src="js/giotto.js"></script>
+	</head>
+	<body data-spy="scroll" data-target="#nex2" data-offset="80">
+	  <main role="main" class="col-md-9 ml-sm-auto col-lg-10 pt-3 px-4">
+	    <h3>AlexNet image feature extraction</h3>
+	    <p>This tutorial explains how to extract image features using AlexNet. Follow the steps below to prepare your images, set up the work directory, and generate the final MATLAB <code>.mat</code> file.</p>
+	    
+	    <h4>Step 1: Prepare your Image Crops</h4>
+	    <p>Make sure that the image crops are exactly <code>227x227</code>. If they are not, resize them—either by up-scaling or down-scaling. See <code>/project/AlexNet/make_image_crops.py</code> for an example of how this is done.</p>
+	    
+	    <h4>Step 2: Set Up Your Work Directory</h4>
+	    <p>Assuming your work directory is named <code>workdir</code>, change into this directory and create the necessary symbolic links and copy files using the following commands:</p>
+	    <pre><code class="language-bash">
+cd workdir
+ln -s /project/AlexNet/alexnet_frozen.pb .
+ln -s /project/AlexNet/alexnet.pb .
+ln -s /project/AlexNet/alexnet.py .
+ln -s /project/AlexNet/bvlc_alexnet.npy .
+ln -s /project/AlexNet/caffe_classes.py .
+cp /project/AlexNet/test2.py .
+cp /project/AlexNet/get_npy.py .
+	    </code></pre>
+	    <p>Activate the correct Python version (3.6):</p>
+	    <pre><code class="language-bash">
+source ~/init.sh
+module unload gcc
+module load python/3.6.8
+python3
+	    </code></pre>
+	    <p>You should see a Python 3.6.8 prompt similar to:</p>
+	    <pre><code class="language-text">
+Python 3.6.8 (default, Jan  7 2023, 21:57:41)  [GCC 6.5.0] on linux
+Type "help", "copyright", "credits" or "license" for more information.
+	    </code></pre>
+	    
+	    <h4>Step 3: Organize Your Image Crops</h4>
+	    <p>For a sample (for example, <code>151510</code>), create a directory structure as follows:</p>
+	    <pre><code class="language-text">
+151510/
+└── image_crops/
+    ├── TTGGACCATCTGGCAA-1.png
+    ├── TTGGACCTATAACAGT-1.png
+    ├── TTGGAGTCTCCCTTCT-1.png
+    ├── TTGGATATCGTCTACG-1.png
+    ├── TTGGATCGACTTCTGG-1.png
+    ├── TTGGATTGGGTACCAC-1.png
+    ├── TTGGCCAAATTGTATC-1.png
+    ├── TTGGCCATCTTGCGCT-1.png
+    ├── TTGGCCTAGAATTTCG-1.png
+    ├── TTGGCGATCCGAATAT-1.png
+    ├── TTGGCTCAATATGTGT-1.png
+    ├── TTGGCTCGCATGAGAC-1.png
+    ├── TTGGGAAGACGAGCCG-1.png
+    ├── TTGGGACACTGCCCGC-1.png
+    ├── TTGGGACGTAAGAGTT-1.png
+    ├── TTGGGCGGCGGTTGCC-1.png
+    └── TTGGGTTTATTCAGCG-1.png
+	    </code></pre>
+	    <p>Run the feature extraction by executing:</p>
+	    <pre><code class="language-bash">
+python3 test2.py 151510/image_crops
+	    </code></pre>
+	    <p>The output feature files will be found in <code>151510/image_crops/features</code>.</p>
+	    
+	    <h4>Step 4: Generate the MATLAB *.mat File</h4>
+	    
+	    <h5>Step 4a: Gene Expression Portion</h5>
+	    <p>Load R and run the following commands line by line to process gene expression data. Replace <code>sid</code> with your sample name (e.g., <code>CID44971</code>):</p>
+	    <pre><code class="language-R">
+library(Giotto)
+sid = "CID44971"  # Fill in the sample name
+raw_matrix = get10Xmatrix(path_to_data = paste0("raw_count_matrices/", sid, "_raw_feature_bc_matrix"), gene_column_index = 2)
+spatial_locations = data.table::fread(paste0("spatial/", sid, "_spatial/tissue_positions_list.csv"))
+spatial_locations = spatial_locations[ match(colnames(raw_matrix), V1) ]
+colnames(spatial_locations) = c('barcode', 'in_tissue', 'array_row', 'array_col', 'col_pxl', 'row_pxl')
+myinst = createGiottoInstructions(python_path = "/usr/bin/python3.6")
+visium = createGiottoObject(raw_exprs = raw_matrix,
+                            spatial_locs = spatial_locations[, .(row_pxl, -col_pxl)],
+                            instructions = myinst,
+                            cell_metadata = spatial_locations[, .(in_tissue, array_row, array_col)])
+spatPlot(visium, point_size = 2, cell_color = "in_tissue",
+         cell_color_code = c("0" = "lightgrey", "1" = "blue"))
+metadata = pDataDT(visium)
+in_tissue_barcodes = metadata[in_tissue == 1]$cell_ID
+visium = subsetGiotto(visium, cell_ids = in_tissue_barcodes)
+visium = filterGiotto(visium, expression_threshold = 1, gene_det_in_min_cells = 50,
+                      expression_values = c("raw"), verbose = TRUE)
+visium = normalizeGiotto(visium, scalefactor = 10000, verbose = TRUE)
+visium = addStatistics(visium)
+visium = calculateHVG(visium)
+gene_metadata = fDataDT(visium)
+write.table(file = paste0("visium_", sid, "_norm_expr.txt"),
+            visium@norm_expr, sep = "\t", quot = FALSE)
+	    </code></pre>
+	    <p>This will create a file called <code>visium_CID44971_norm_expr.txt</code>.</p>
+	    
+	    <h5>Step 4b: Morphology Portion</h5>
+	    <p>Create the image names file by running:</p>
+	    <pre><code class="language-bash">
+head -n 1 visium_1142243F_norm_expr.txt | tr "\t" "\n" > test.1142243F.imagenames.txt
+	    </code></pre>
+	    <p>Then, create the MATLAB file by running:</p>
+	    <pre><code class="language-bash">
+python3 get_npy.py test.1142243F.imagenames.txt 1142243F/image_crops visium_1142243F_norm_expr.txt visium_1142243F_norm_expr_morpho.mat
+	    </code></pre>
+	    <p>The final output is the file <code>visium_1142243F_norm_expr_morpho.mat</code>.</p>
+	  </main>
+	</body>
+</html>
