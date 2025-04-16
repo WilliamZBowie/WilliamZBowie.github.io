@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="initial-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+		<title>make_image_crops</title>
+		<!-- CSS Stylesheets -->
+		<link rel="stylesheet" href="css/jquery-ui.min.css">
+		<link rel="stylesheet" href="css/bootstrap.4.1.0.min.css">
+		<link rel="stylesheet" href="css/carousel.css">
+		<link rel="stylesheet" href="css/prism.css">
+		<link rel="stylesheet" href="css/giotto.css">
+		<!-- JavaScript -->
+		<script src="js/jquery.min.js"></script>
+		<script src="js/jquery-ui.min.js"></script>
+		<script src="js/bootstrap.4.1.0.min.js"></script>
+		<script src="js/carousel.js"></script>
+		<script src="js/prism.js"></script>
+		<script src="js/giotto.js"></script>
+	</head>
+	<body data-spy="scroll" data-target="#nex2" data-offset="80">
+	  <main role="main" class="col-md-9 ml-sm-auto col-lg-10 pt-3 px-4">
+	    <!-- Header -->
+	    <h3>make_image_crops</h3>
+	    
+	    <!-- Python Code Block (all code included) -->
+	    <pre><code class="language-python">
+import os, csv, re
+import pandas as pd
+import numpy as np
+import scanpy as sc
+import math
+#import SpaGCN as spg
+from scipy.sparse import issparse
+import random
+import warnings
+warnings.filterwarnings("ignore")
+import matplotlib.colors as clr
+import matplotlib.pyplot as plt
+#import SpaGCN as spg
+import cv2
+import json
+
+#Function to load dataset
+def load_dataset(path, name):
+    #Load Dataset        
+    adata = sc.read_10x_h5(os.path.join(path, name + "_raw_feature_bc_matrix.h5"))
+    spatial = pd.read_csv(os.path.join(path, name, "tissue_positions_list.txt"),
+                          header=None, na_filter=False, index_col=0)
+    adata.obs["tissue_designation"] = spatial[1]
+    adata.obs["x_array"] = spatial[2]
+    adata.obs["y_array"] = spatial[3]
+    #transform x and y coordinates if necessary
+    adata.obs["x_pixel"] = spatial[4]
+    adata.obs["y_pixel"] = spatial[5]
+    #select captured samples
+    adata = adata[adata.obs["tissue_designation"] == 1]
+    #Data Preprocesssing
+    adata.var_names_make_unique()
+    #spg.prefilter_genes(adata, min_cells=3) # avoiding all genes are zeros
+    #spg.prefilter_specialgenes(adata)
+    #Normalize and log-transform (if needed)
+    #sc.pp.normalize_per_cell(adata)
+    #sc.pp.log1p(adata)
+    #Read in Morph Image
+    for f in os.listdir(os.path.join(path, name)):
+        if f.lower().endswith('.tif') is True:
+            img = cv2.imread(os.path.join(path, name, f))
+    return(adata, img)
+
+#Path and Name
+path = "."
+names = ["151507",
+"151508",
+"151509",
+"151510",
+"151669",
+"151670",
+"151671",
+"151672",
+"151673",
+"151674",
+"151675",
+"151676"]
+#name = names[0]
+    
+#Initiate loops
+for i in range(len(names)): 
+    name = names[i]
+    script_dir = os.path.dirname(__file__)
+    results_dir = os.path.join(script_dir, name, "image_crops")
+    print(results_dir)
+    if not os.path.isdir(results_dir):
+        os.makedirs(results_dir)
+
+    #Grab Scale information
+    with open(os.path.join(path, name, "scalefactors_json.json")) as json_file:
+        scale = json.load(json_file)
+   
+    #Load Image and Data
+    adata, img = load_dataset(path, name)
+    
+    #Set coordinates
+    x_pixel = adata.obs["x_pixel"].tolist()
+    y_pixel = adata.obs["y_pixel"].tolist()
+    barcodes = list(adata.obs.index)
+    
+    beta = int(scale["spot_diameter_fullres"])
+    beta_half = round(beta/2)
+    print(beta)
+
+    for j in range(len(x_pixel)):
+        max_x = img.shape[0]
+        max_y = img.shape[1]
+        nbs = img[max(0, x_pixel[j]-beta_half):min(max_x, x_pixel[j]+beta_half+1),
+                  max(0, y_pixel[j]-beta_half):min(max_y, y_pixel[j]+beta_half+1)]
+        t_factor = float(227) / nbs.shape[0]
+        resized = cv2.resize(nbs, None, fx=t_factor, fy=t_factor, interpolation=cv2.INTER_CUBIC)
+        cv2.imwrite(results_dir + '/{}.png'.format(barcodes[j]), resized)
+	    </code></pre>
+	    
+	    <!-- Running Command Section -->
+	    <h3>Running Command</h3>
+	    <pre><code class="language-bash">python3 make_image_crops.py</code></pre>
+	    
+	    <!-- Exam Output Section -->
+	    <h3>Exam Output (Directory Structure)</h3>
+	    <p>The output is a directory for each sample with an <code>image_crops</code> folder containing the cropped images. For example:</p>
+	    <pre><code class="language-text">
+151510/
+└── image_crops/
+    ├── TTGGACCATCTGGCAA-1.png
+    ├── TTGGACCTATAACAGT-1.png
+    ├── TTGGAGTCTCCCTTCT-1.png
+    ├── TTGGATATCGTCTACG-1.png
+    ├── TTGGATCGACTTCTGG-1.png
+    ├── TTGGATTGGGTACCAC-1.png
+    ├── TTGGCCAAATTGTATC-1.png
+    ├── TTGGCCATCTTGCGCT-1.png
+    ├── TTGGCCTAGAATTTCG-1.png
+    ├── TTGGCGATCCGAATAT-1.png
+    ├── TTGGCTCAATATGTGT-1.png
+    ├── TTGGCTCGCATGAGAC-1.png
+    ├── TTGGGAAGACGAGCCG-1.png
+    ├── TTGGGACACTGCCCGC-1.png
+    ├── TTGGGACGTAAGAGTT-1.png
+    ├── TTGGGCGGCGGTTGCC-1.png
+    └── TTGGGTTTATTCAGCG-1.png
+	    </code></pre>
+	  </main>
+	</body>
+</html>
