@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>Run_multnmf_and_Visualize</title>
+    <!-- CSS Stylesheets -->
+    <link rel="stylesheet" href="css/jquery-ui.min.css">
+    <link rel="stylesheet" href="css/bootstrap.4.1.0.min.css">
+    <link rel="stylesheet" href="css/carousel.css">
+    <link rel="stylesheet" href="css/prism.css">
+    <link rel="stylesheet" href="css/giotto.css">
+    <!-- JavaScript -->
+    <script src="js/jquery.min.js"></script>
+    <script src="js/jquery-ui.min.js"></script>
+    <script src="js/bootstrap.4.1.0.min.js"></script>
+    <script src="js/carousel.js"></script>
+    <script src="js/prism.js"></script>
+    <script src="js/giotto.js"></script>
+  </head>
+  <body data-spy="scroll" data-target="#nex2" data-offset="80">
+    <main role="main" class="col-md-9 ml-sm-auto col-lg-10 pt-3 px-4">
+      <h3>Run_multnmf_and_Visualize</h3>
+
+      <h4>Step 1: Run MultiNMF in MATLAB</h4>
+      <p>Use the morphology‐augmented expression file <code>visium_1142243F_norm_expr_morpho.mat</code> as input to the MATLAB clustering script.</p>
+      <pre><code class="language-bash">/opt/MATLAB/R2023a/bin/matlab -r "./run.m"</code></pre>
+      <p>The <code>run.m</code> script should load <code>visium_1142243F_norm_expr_morpho.mat</code> and output <code>jan14_CID4209_norm_no_preprocessing.mat</code>.</p>
+
+      <h4>Step 2: Visualize Clusters and Probabilities</h4>
+      <p>Now take the output file <code>jan14_CID4209_norm_no_preprocessing.mat</code> and run the Python visualization script:</p>
+      <pre><code class="language-bash">python3 plot_hist_2.py jan14_CID4209_norm_no_preprocessing.mat</code></pre>
+      <p>This generates two PNGs:</p>
+      <ul>
+        <li><code>pred.png</code> — Cluster label overlay</li>
+        <li><code>Cellwise Probability Value per Kth Group.png</code> — Cellwise probability map</li>
+      </ul>
+
+      <h3>Results</h3>
+      <p>
+        <img src="pic/pred.png" alt="Cluster Labels (pred.png)" class="img-fluid" style="width:600px;">
+        <img src="pic/Cellwise Probability Value per Kth Group.png" alt="Cellwise Probability Map" class="img-fluid" style="width:600px;">
+      </p>
+    </main>
+  </body>
+</html>
