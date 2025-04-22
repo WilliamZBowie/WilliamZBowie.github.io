@@ -26,11 +26,11 @@
       <h4>Step 1: Run MultiNMF in MATLAB</h4>
       <p>Use the morphology‐augmented expression file <code>visium_1142243F_norm_expr_morpho.mat</code> as input to the MATLAB clustering script.</p>
       <pre><code class="language-bash">/opt/MATLAB/R2023a/bin/matlab -r "./run.m"</code></pre>
-      <p>The <code>run.m</code> script should load <code>visium_1142243F_norm_expr_morpho.mat</code> and output <code>jan14_CID4209_norm_no_preprocessing.mat</code>.</p>
+      <p>The <code>run.m</code> script should load <code>visium_1142243F_norm_expr_morpho.mat</code> and output <code>jan14_1142243F_norm_no_preprocessing.mat</code>.</p>
 
       <h4>Step 2: Visualize Clusters and Probabilities</h4>
-      <p>Now take the output file <code>jan14_CID4209_norm_no_preprocessing.mat</code> and run the Python visualization script:</p>
-      <pre><code class="language-bash">python3 plot_hist_2.py jan14_CID4209_norm_no_preprocessing.mat</code></pre>
+      <p>Now take the output file <code>jan14_1142243F_norm_no_preprocessing.mat</code> and run the Python visualization script:</p>
+      <pre><code class="language-bash">python3 plot_hist_2.py jan14_1142243F_norm_no_preprocessing.mat</code></pre>
       <p>This generates two PNGs:</p>
       <ul>
         <li><code>pred.png</code> — Cluster label overlay</li>
