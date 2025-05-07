@@ -1,0 +1,1 @@
+This contains data used for MultiNMF paper. There will be links to the original repositories containing all samples from the TNBC and DLPFC but the data here is for one sample from each to minimize repository size, in which other samples from the same dataset were processed in the same manner and should be reproducable from the same code.
