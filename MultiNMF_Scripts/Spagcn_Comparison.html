@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>Run_SpaGCN</title>
+    <!-- CSS Stylesheets -->
+    <link rel="stylesheet" href="css/jquery-ui.min.css">
+    <link rel="stylesheet" href="css/bootstrap.4.1.0.min.css">
+    <link rel="stylesheet" href="css/carousel.css">
+    <link rel="stylesheet" href="css/prism.css">
+    <link rel="stylesheet" href="css/giotto.css">
+    <!-- JavaScript -->
+    <script src="js/jquery.min.js"></script>
+    <script src="js/jquery-ui.min.js"></script>
+    <script src="js/bootstrap.4.1.0.min.js"></script>
+    <script src="js/carousel.js"></script>
+    <script src="js/prism.js"></script>
+    <script src="js/giotto.js"></script>
+  </head>
+  <body data-spy="scroll" data-target="#nex2" data-offset="80">
+    <main role="main" class="col-md-9 ml-sm-auto col-lg-10 pt-3 px-4">
+      <h3>Run_SpaGCN</h3>
+
+      <p>This tutorial describes how to run a spatial clustering pipeline using <strong>SpaGCN</strong> to generate domain labels for Visium spatial transcriptomics data.</p>
+
+      <h4>Required Inputs</h4>
+      <ul>
+        <li>10x Visium <code>raw_feature_bc_matrix</code> directory (MTX format)</li>
+        <li>10x Visium <code>tissue_positions_list.csv</code></li>
+        <li><code>tissue_hires_image.png</code> — high-resolution image of the tissue section</li>
+        <li><code>SpaGCN_test.py</code> — the pipeline script</li>
+      </ul>
+
+      <h4>Step 1: Run the Pipeline</h4>
+      <p>Execute the SpaGCN analysis using the following command:</p>
+      <pre><code class="language-bash">python3 SpaGCN_test.py</code></pre>
+
+      <p>This script will:</p>
+      <ul>
+        <li>Preprocess gene expression and spatial metadata</li>
+        <li>Build spatial adjacency matrices using the image</li>
+        <li>Perform Louvain-based initialization and train the SpaGCN model</li>
+        <li>Refine clusters based on spatial adjacency</li>
+        <li>Generate and save results</li>
+      </ul>
+
+      <h4>Output</h4>
+      <p>Results will be saved in the <code>SpaCGN_Result/&lt;SampleID&gt;/</code> directory:</p>
+      <ul>
+        <li><code>results.h5ad</code> — annotated AnnData object</li>
+        <li><code>pred.png</code> — initial spatial domains</li>
+        <li><code>refined_pred.png</code> — refined spatial domains after graph smoothing</li>
+        <li><code>labels.txt</code> — CSV file with cluster assignments</li>
+      </ul>
+
+      <h5>Example Output: refined_pred.png</h5>
+      <img src="img/refined_pred_spagcn.png" alt="Refined Prediction Example" class="img-fluid" style="width:600px;">
+
+      <h4>Notes</h4>
+      <ul>
+        <li>If you're not using the full-resolution image, update the pixel coordinates using the appropriate scale factor from <code>scalefactors_json.json</code>.</li>
+        <li>The script supports batch processing of multiple Visium datasets in a structured folder layout.</li>
+      </ul>
+
+      <h4>Next Steps</h4>
+      <p>Once you have the <code>refined_pred</code> labels, you can integrate these clusters into downstream comparative analyses, spatial domain exploration, or marker gene detection workflows.</p>
+    </main>
+  </body>
+</html>
