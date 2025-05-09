@@ -35,15 +35,27 @@
 
       <h4>Step 1: Run the Pipeline</h4>
       <p>Execute the SpaGCN analysis using the following command:</p>
-      <pre><code class="language-bash">python3 SpaGCN_test.py</code></pre>
+      <pre><code class="language-bash">python3 SpaGCN_test.py 0</code></pre>
+
+      <p>The argument <code>0</code> refers to the sample index defined in the script:</p>
+      <pre><code class="language-python">sample_list = ["151507", "151508", "151509"]
+sample = sample_list[int(sys.argv[1])]</code></pre>
+      <p>This allows you to batch process multiple samples by specifying their index.</p>
 
       <p>This script will:</p>
       <ul>
         <li>Preprocess gene expression and spatial metadata</li>
-        <li>Build spatial adjacency matrices using the image</li>
-        <li>Perform Louvain-based initialization and train the SpaGCN model</li>
-        <li>Refine clusters based on spatial adjacency</li>
-        <li>Generate and save results</li>
+        <li>Load and rescale tissue image using coordinates and scale factor:</li>
+        <pre><code class="language-python">scale = json.load(open(scale_path))
+scalef = scale['tissue_hires_scalef']
+coords[:, 0] = coords[:, 0] * scalef
+coords[:, 1] = coords[:, 1] * scalef</code></pre>
+        <li>Build spatial adjacency matrices from pixel-based neighborhood relations</li>
+        <li>Initialize clusters with Louvain community detection:</li>
+        <pre><code class="language-python">adj = sp.coo_matrix((data, (row, col)), shape=(nspots, nspots))
+init_labels = community.best_partition(nx.Graph(adj))</code></pre>
+        <li>Train the SpaGCN model and refine clusters spatially</li>
+        <li>Save label results and generate plots</li>
       </ul>
 
       <h4>Output</h4>
@@ -62,6 +74,7 @@
       <ul>
         <li>If you're not using the full-resolution image, update the pixel coordinates using the appropriate scale factor from <code>scalefactors_json.json</code>.</li>
         <li>The script supports batch processing of multiple Visium datasets in a structured folder layout.</li>
+        <li>You can manually inspect clustering stability by plotting intermediate results with matplotlib or scanpy.</li>
       </ul>
 
       <h4>Next Steps</h4>
