@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>Run_Spicemix</title>
+    <!-- CSS Stylesheets -->
+    <link rel="stylesheet" href="css/jquery-ui.min.css">
+    <link rel="stylesheet" href="css/bootstrap.4.1.0.min.css">
+    <link rel="stylesheet" href="css/carousel.css">
+    <link rel="stylesheet" href="css/prism.css">
+    <link rel="stylesheet" href="css/giotto.css">
+    <!-- JavaScript -->
+    <script src="js/jquery.min.js"></script>
+    <script src="js/jquery-ui.min.js"></script>
+    <script src="js/bootstrap.4.1.0.min.js"></script>
+    <script src="js/carousel.js"></script>
+    <script src="js/prism.js"></script>
+    <script src="js/giotto.js"></script>
+  </head>
+  <body data-spy="scroll" data-target="#nex2" data-offset="80">
+    <main role="main" class="col-md-9 ml-sm-auto col-lg-10 pt-3 px-4">
+      <h3>Run_Spicemix</h3>
+
+      <p>This tutorial demonstrates how to run the SpiceMix pipeline on 10x Visium spatial transcriptomics data and generate clustering results.</p>
+
+      <h4>Required Inputs</h4>
+      <ul>
+        <li>10x Visium <code>raw_feature_bc_matrix</code> directory</li>
+        <li>10x Visium <code>tissue_positions_list.csv</code></li>
+        <li>High-resolution tissue image (.tif)</li>
+        <li>Python scripts: <code>make_spicemix_files.py</code>, <code>spicemix.py</code>, <code>spicemix_LIBD.py</code></li>
+      </ul>
+
+      <h4>Step 1: Preprocess Data for SpiceMix</h4>
+      <p>Run the following command to convert your 10x Visium data into the format required by SpiceMix:</p>
+      <pre><code class="language-bash">python3 make_spicemix_files.py</code></pre>
+      <p>This script will:</p>
+      <ul>
+        <li>Load and normalize gene expression data</li>
+        <li>Extract pixel coordinates from the tissue positions file</li>
+        <li>Generate the following files in a <code>files/</code> subdirectory:</li>
+        <ul>
+          <li><code>expression_SAMPLEID.txt</code></li>
+          <li><code>coordinates_SAMPLEID.txt</code></li>
+          <li><code>neighborhood_SAMPLEID.txt</code></li>
+          <li><code>genes_SAMPLEID.txt</code></li>
+          <li><code>meta_SAMPLEID.csv</code></li>
+        </ul>
+      </ul>
+
+      <h4>Step 2: Run the SpiceMix Model</h4>
+      <p>Execute the appropriate SpiceMix runner script:</p>
+      <pre><code class="language-bash">python3 spicemix.py</code></pre>
+      <p>Or, for LIBD datasets:</p>
+      <pre><code class="language-bash">python3 spicemix_LIBD.py [dataset_index]</code></pre>
+      <p>This script will:</p>
+      <ul>
+        <li>Load preprocessed input files</li>
+        <li>Initialize the model using Louvain clustering</li>
+        <li>Run 200 iterations of parameter optimization</li>
+        <li>Save results to: <code>results/SpiceMix.h5</code></li>
+      </ul>
+
+      <h4>Output</h4>
+      <p>The main output of this pipeline is:</p>
+      <ul>
+        <li><code>SpiceMix.h5</code> — an HDF5 file containing cluster labels and model parameters</li>
+      </ul>
+
+      <h4>Next Steps</h4>
+      <p>After running the pipeline, you can extract labels or visualize results using your preferred analysis tools or by extending the <code>spicemix.py</code> or <code>spicemix_LIBD.py</code> scripts.</p>
+    </main>
+  </body>
+</html>
