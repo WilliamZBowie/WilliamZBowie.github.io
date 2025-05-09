@@ -36,41 +36,41 @@
       <h4>Step 1: Preprocess Data for SpiceMix</h4>
       <p>Run the following command to convert your 10x Visium data into the format required by SpiceMix:</p>
       <pre><code class="language-bash">python3 make_spicemix_files.py</code></pre>
-      <p>This script will:</p>
+      <p>This script performs the following operations:</p>
       <ul>
-        <li>Load and normalize gene expression data</li>
-        <li>Extract pixel coordinates from the tissue positions file</li>
-        <li>Generate the following files in a <code>files/</code> subdirectory:</li>
-        <ul>
-          <li><code>expression_SAMPLEID.txt</code></li>
-          <li><code>coordinates_SAMPLEID.txt</code></li>
-          <li><code>neighborhood_SAMPLEID.txt</code></li>
-          <li><code>genes_SAMPLEID.txt</code></li>
-          <li><code>meta_SAMPLEID.csv</code></li>
-        </ul>
+        <li>Reads the spatial expression matrix and metadata</li>
+        <li>Extracts pixel coordinates and resizes image if necessary:</li>
+        <pre><code class="language-python">adata.obs["x_pixel"] = spatial["pxl_col_in_fullres"]
+adata.obs["y_pixel"] = spatial["pxl_row_in_fullres"]
+img = cv2.imread(path_to_tif)
+scale = json.load(open(scale_path))</code></pre>
+        <li>Generates normalized expression tables and spatial coordinates</li>
+        <li>Creates neighborhood graphs and saves formatted input files to <code>files/</code></li>
       </ul>
 
       <h4>Step 2: Run the SpiceMix Model</h4>
-      <p>Execute the appropriate SpiceMix runner script:</p>
+      <p>Once preprocessing is complete, execute:</p>
       <pre><code class="language-bash">python3 spicemix.py</code></pre>
-      <p>Or, for LIBD datasets:</p>
-      <pre><code class="language-bash">python3 spicemix_LIBD.py [dataset_index]</code></pre>
-      <p>This script will:</p>
-      <ul>
-        <li>Load preprocessed input files</li>
-        <li>Initialize the model using Louvain clustering</li>
-        <li>Run 200 iterations of parameter optimization</li>
-        <li>Save results to: <code>results/SpiceMix.h5</code></li>
-      </ul>
+      <p>or for LIBD datasets:</p>
+      <pre><code class="language-bash">python3 spicemix_LIBD.py 0</code></pre>
+      <p>The argument <code>0</code> selects the sample index from the list in the script:</p>
+      <pre><code class="language-python">dataset_list = ["151507", "151508", "151509"]
+sample = dataset_list[int(sys.argv[1])]</code></pre>
+
+      <p>Internally, the model is initialized using Louvain clustering and refined through latent optimization:</p>
+      <pre><code class="language-python">adata = sc.read_csv(expression_file)
+X = adata.X
+Z, Pi = initialize_clusters(X)
+for step in range(max_iter):
+    Z, Pi = update_latent_states(X, Z, Pi)</code></pre>
 
       <h4>Output</h4>
-      <p>The main output of this pipeline is:</p>
       <ul>
         <li><code>SpiceMix.h5</code> — an HDF5 file containing cluster labels and model parameters</li>
       </ul>
 
       <h4>Next Steps</h4>
-      <p>After running the pipeline, you can extract labels or visualize results using your preferred analysis tools or by extending the <code>spicemix.py</code> or <code>spicemix_LIBD.py</code> scripts.</p>
+      <p>After running the pipeline, extract the cluster labels or visualize results using your preferred analysis tools or extend the provided scripts for batch processing.</p>
     </main>
   </body>
 </html>
