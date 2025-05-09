@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>Run_Stagate</title>
+    <!-- CSS Stylesheets -->
+    <link rel="stylesheet" href="css/jquery-ui.min.css">
+    <link rel="stylesheet" href="css/bootstrap.4.1.0.min.css">
+    <link rel="stylesheet" href="css/carousel.css">
+    <link rel="stylesheet" href="css/prism.css">
+    <link rel="stylesheet" href="css/giotto.css">
+    <!-- JavaScript -->
+    <script src="js/jquery.min.js"></script>
+    <script src="js/jquery-ui.min.js"></script>
+    <script src="js/bootstrap.4.1.0.min.js"></script>
+    <script src="js/carousel.js"></script>
+    <script src="js/prism.js"></script>
+    <script src="js/giotto.js"></script>
+  </head>
+  <body data-spy="scroll" data-target="#nex2" data-offset="80">
+    <main role="main" class="col-md-9 ml-sm-auto col-lg-10 pt-3 px-4">
+      <h3>Run_Stagate</h3>
+
+      <p>This tutorial explains how to run the <strong>STAGATE</strong> pipeline for clustering Visium spatial transcriptomics data and extracting refined domain labels.</p>
+
+      <h4>Required Inputs</h4>
+      <ul>
+        <li>10x Visium <code>raw_feature_bc_matrix</code> directory (HDF5 or MTX format)</li>
+        <li>10x Visium <code>tissue_positions_list</code> file</li>
+        <li><code>STAGATE_test.py</code> or <code>STAGATE_test_LIBD.py</code></li>
+      </ul>
+
+      <h4>Step 1: Run the Pipeline</h4>
+      <p>Execute either version depending on your dataset:</p>
+      <pre><code class="language-bash">python3 STAGATE_test.py 0</code></pre>
+      <p>or for LIBD datasets:</p>
+      <pre><code class="language-bash">python3 STAGATE_test_LIBD.py 0</code></pre>
+
+      <p>Note: the numeric index refers to the sample list in the script. For example, in <code>STAGATE_test.py</code>:</p>
+      <pre><code class="language-python">samples = ["1142243F", "1160920F", "CID4290"]
+sample = samples[int(sys.argv[1])]</code></pre>
+      <p>Running with index <code>0</code> will process sample <code>1142243F</code>.</p>
+
+      <p>The script will:</p>
+      <ul>
+        <li>Load the dataset and spatial metadata</li>
+        <li>Apply coordinate transformations if necessary, e.g.:</li>
+        <pre><code class="language-python">spatial_locs = pd.read_csv(pos_file, header=None)
+spatial_locs[2] = -spatial_locs[2]
+spatial_locs = spatial_locs.sort_values(by=0)
+adata.obs['x'] = spatial_locs[1].values
+adata.obs['y'] = spatial_locs[2].values</code></pre>
+        <li>Construct spatial graphs from the tissue layout using Delaunay or KNN</li>
+        <li>Train the STAGATE model:</li>
+        <pre><code class="language-python">model = STAGATE(adata, hidden_dims=[512, 30])
+model.train(n_epochs=200)
+latent = model.get_latent_representation()</code></pre>
+        <li>Perform Louvain clustering before and after training</li>
+        <li>Save cluster outputs and spatial plots</li>
+      </ul>
+
+      <h4>Output</h4>
+      <ul>
+        <li><code>&lt;sample&gt;_precluster_results.png</code> — clusters before STAGATE training</li>
+        <li><code>&lt;sample&gt;_cluster_results.png</code> — clusters after STAGATE refinement</li>
+        <li><code>&lt;sample&gt;_results.csv</code> — table of cluster labels per spot</li>
+      </ul>
+
+      <h5>Example Output</h5>
+      <img src="/img/stagate_example_output.png" alt="STAGATE Cluster Result Example" class="img-fluid" style="width:600px;">
+
+      <h4>Notes</h4>
+      <ul>
+        <li>For LIBD datasets, HDF5 input is expected. For TNBC, MTX format is used.</li>
+        <li>Pixel coordinate transformations are built-in for TNBC and LIBD cohorts.</li>
+        <li>You can adjust the number of clusters by changing <code>K</code> or resolution parameters in the script.</li>
+        <li>Latent embeddings are accessible for downstream tasks using:</li>
+        <pre><code class="language-python">latent = adata.obsm['STAGATE']</code></pre>
+      </ul>
+
+      <h4>Next Steps</h4>
+      <p>Use the CSV and clustering images to integrate STAGATE labels into your comparative analysis or spatial visualization pipelines.</p>
+    </main>
+  </body>
+</html>
