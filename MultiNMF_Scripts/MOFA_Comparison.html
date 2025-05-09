@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>Run_MOFA</title>
+    <link rel="stylesheet" href="css/jquery-ui.min.css">
+    <link rel="stylesheet" href="css/bootstrap.4.1.0.min.css">
+    <link rel="stylesheet" href="css/carousel.css">
+    <link rel="stylesheet" href="css/prism.css">
+    <link rel="stylesheet" href="css/giotto.css">
+    <script src="js/jquery.min.js"></script>
+    <script src="js/jquery-ui.min.js"></script>
+    <script src="js/bootstrap.4.1.0.min.js"></script>
+    <script src="js/carousel.js"></script>
+    <script src="js/prism.js"></script>
+    <script src="js/giotto.js"></script>
+  </head>
+  <body data-spy="scroll" data-target="#nex2" data-offset="80">
+    <main role="main" class="col-md-9 ml-sm-auto col-lg-10 pt-3 px-4">
+      <h3>Run_MOFA</h3>
+
+      <p>This tutorial explains how to use <strong>MOFA2</strong> (Multi-Omics Factor Analysis) to integrate gene expression and morphology data from Visium spatial transcriptomics experiments.</p>
+
+      <h4>Required Inputs</h4>
+      <ul>
+        <li><code>jan14_1142243F_norm_expr_morpho.mat</code> — a MATLAB matrix file with expression and morphological views</li>
+        <li><code>MOFA.R</code> — R script that runs the MOFA analysis</li>
+      </ul>
+
+      <h4>Step 1: Prepare and Load the Data</h4>
+      <p>Launch an R session and run the MOFA script:</p>
+      <pre><code class="language-bash">Rscript MOFA.R</code></pre>
+
+      <p>Key preprocessing steps in <code>MOFA.R</code> include reading and formatting the matrix from MATLAB:</p>
+      <pre><code class="language-r">matlab_matrix = readMat("jan14_1142243F_norm_expr_morpho.mat")
+expr = matlab_matrix[["expr"]]
+morpho = matlab_matrix[["morpho"]]
+morpho = t(morpho)</code></pre>
+
+      <p>Both data matrices are labeled and added to a list for MOFA input:</p>
+      <pre><code class="language-r">rownames(expr) <- paste0("feature_",1:nrow(expr),"_view1")
+colnames(expr) <- paste0("sample_",1:ncol(expr))
+rownames(morpho) <- paste0("feature_",1:nrow(morpho),"_view2")
+colnames(morpho) <- paste0("sample_",1:ncol(morpho))
+data = list(expr, morpho)</code></pre>
+
+      <h4>Step 2: Create and Configure the MOFA Object</h4>
+      <p>A MOFA object is created and configured with options:</p>
+      <pre><code class="language-r">MOFAobject <- create_mofa(data)
+data_opts <- get_default_data_options(MOFAobject)
+data_opts$scale_groups = TRUE
+model_opts <- get_default_model_options(MOFAobject)
+model_opts$num_factors = 20
+train_opts <- get_default_training_options(MOFAobject)
+train_opts$convergence_mode = "slow"</code></pre>
+
+      <p>The object is then prepared:</p>
+      <pre><code class="language-r">MOFAobject <- prepare_mofa(
+  object = MOFAobject,
+  data_options = data_opts,
+  model_options = model_opts,
+  training_options = train_opts
+)</code></pre>
+
+      <h4>Step 3: Run the Model and Save the Output</h4>
+      <p>Train the model and save the output to HDF5 format:</p>
+      <pre><code class="language-r">outfile = file.path(getwd(),"1142243F_MOFA.hdf5")
+MOFAobject.trained <- run_mofa(MOFAobject, outfile, use_basilisk = TRUE)</code></pre>
+
+      <h4>Output</h4>
+      <ul>
+        <li><code>1142243F_MOFA.hdf5</code> — trained MOFA model with integrated latent factors</li>
+      </ul>
+
+      <h4>Next Steps</h4>
+      <p>Use MOFA's visualization and analysis functions to explore latent factors, sample clustering, or feature loadings across data modalities.</p>
+    </main>
+  </body>
+</html>
